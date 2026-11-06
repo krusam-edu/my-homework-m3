@@ -1,0 +1,186 @@
+'use strict';
+const MODULES=[
+ {title:'รู้จักแอปและวางแผน',sub:'ใบความรู้ • เป้าหมาย • วางโครงงาน',minutes:25},
+ {title:'ออกแบบหน้าจอ Designer',sub:'สร้างโปรเจกต์ • ตั้งค่า • Components',minutes:50},
+ {title:'เขียนคำสั่ง Blocks',sub:'ตัวแปร • เพิ่ม • บันทึก • ลบ',minutes:75},
+ {title:'แผนฝึกปฏิบัติ 4 คาบ',sub:'เรียนตามคาบ • ทำงานเป็นคู่',minutes:20},
+ {title:'ใบงานและแบบฝึกหัด',sub:'ภารกิจ 9 ข้อ • คำถาม 4 ข้อ',minutes:35},
+ {title:'ทดสอบและประเมิน',sub:'Test Cases 6 ข้อ • Rubric 20 คะแนน',minutes:30},
+ {title:'สะท้อนผลและส่งผลงาน',sub:'สรุปสิ่งที่เรียน • ส่งออกหลักฐาน',minutes:20}
+];
+const CHECKS=[
+ 'สร้างโปรเจกต์ MyHomework_M3', 'เพิ่ม TextBox ทั้ง 3 ช่อง', 'สร้างปุ่มบันทึกและปุ่มลบ', 'เพิ่ม ListView แสดงการบ้าน', 'เพิ่ม TinyDB และ Notifier', 'สร้าง Blocks เพิ่มรายการ', 'สร้าง Blocks บันทึกและอ่านข้อมูล', 'สร้าง Blocks ลบรายการ', 'ปิดแล้วเปิดแอปเพื่อทดสอบข้อมูล'
+];
+const TESTS=[
+ ['กรอกข้อมูลครบแล้วกดบันทึก','แสดงรายการการบ้านใหม่'],['ไม่กรอกชื่อวิชาแล้วกดบันทึก','แจ้งเตือนและไม่เพิ่มรายการ'],['บันทึกการบ้าน 3 รายการ','แสดงจำนวน 3 รายการ'],['เลือกการบ้านแล้วกดลบ','รายการนั้นหายไป'],['กดลบโดยไม่เลือกรายการ','แจ้งเตือนให้เลือกรายการ'],['ปิดแล้วเปิดแอปใหม่','การบ้านที่ยังไม่ถูกลบยังอยู่']
+];
+const QUESTIONS=[
+ 'TextBox และ Label มีหน้าที่แตกต่างกันอย่างไร?', 'เพราะเหตุใดจึงต้องใช้ตัวแปร homeworkList?', 'หากไม่ใช้ TinyDB จะเกิดอะไรขึ้นเมื่อปิดแอป?', 'ถ้านักเรียนกดลบโดยไม่เลือกรายการ โปรแกรมควรทำอย่างไร?'
+];
+const QUIZ=[
+ {q:'Component ใดใช้พิมพ์ชื่อวิชา?',options:['Label','TextBox','Notifier','ListView'],correct:1,why:'TextBox รับข้อความจากผู้ใช้ ส่วน Label มีหน้าที่แสดงข้อความ'},
+ {q:'บล็อกใดใช้ตรวจสอบว่าช่องกรอกว่าง?',options:['if then else','open another screen','Clock.Timer','set BackgroundColor'],correct:0,why:'if then else ใช้ตรวจสอบเงื่อนไขก่อนบันทึก'},
+ {q:'TinyDB มีหน้าที่อะไร?',options:['เปลี่ยนสีหน้าจอ','จัดเรียงปุ่ม','เก็บข้อมูลไว้ในอุปกรณ์','เชื่อมต่อ GPS'],correct:2,why:'TinyDB เก็บข้อมูลแบบ tag/value และอ่านกลับหลังเปิดแอปใหม่ได้'},
+ {q:'ถ้า ListView1.SelectionIndex = 0 หมายถึงอะไร?',options:['เลือกข้อแรก','ยังไม่มีรายการถูกเลือก','เลือกข้อสุดท้าย','มี 0 คะแนน'],correct:1,why:'ListView ใช้ 1 เป็นตำแหน่งแรก และ 0 เมื่อไม่ได้เลือก'},
+ {q:'หลังลบการบ้านออกจาก list ควรทำอะไรต่อ?',options:['ปิดแอปทันที','เปลี่ยนชื่อ Screen1','บันทึก list ใหม่ลง TinyDB','ลบ Component ทุกตัว'],correct:2,why:'ต้องบันทึก list ที่อัปเดตกลับลง TinyDB เพื่อให้การลบคงอยู่'}
+];
+const RUBRIC=[['ออกแบบ UI และตั้งค่า Components ครบ',4],['เพิ่มและแสดงการบ้านได้ถูกต้อง',5],['บันทึกและโหลดข้อมูลด้วย TinyDB',4],['เลือกและลบรายการถูกต้อง',3],['ทดสอบ แก้ข้อผิดพลาด และอธิบายได้',4]];
+const KEY='my_homework_m3_course_v1';
+const makeDefault=()=>({profile:{name:'',room:'',no:''},done:[false,false,false,false,false,false,false],checks:Array(9).fill(false),tests:Array(6).fill(''),answers:Array(4).fill(''),reflection:Array(3).fill(''),rubric:[0,0,0,0,0],quiz:{answers:{},submitted:false},notes:'',lastUpdated:null});
+let state=makeDefault();
+try{const saved=JSON.parse(localStorage.getItem(KEY));if(saved&&typeof saved==='object'){
+ state={...state,...saved,profile:{...state.profile,...saved.profile},quiz:{...state.quiz,...saved.quiz}};
+ for(const field of ['done','checks','tests','answers','reflection','rubric'])if(!Array.isArray(state[field]))state[field]=makeDefault()[field];
+}}catch(e){console.warn('Unable to restore course progress',e)}
+let current=0;
+const $=(id)=>document.getElementById(id);
+const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const save=()=>{state.lastUpdated=new Date().toISOString();try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){alert('ไม่สามารถบันทึกความก้าวหน้าได้ กรุณาส่งออกไฟล์เพื่อสำรองข้อมูล');}updateProgress()};
+function updateProgress(){const n=state.done.filter(Boolean).length; $('progressPercent').textContent=Math.round(n/7*100)+'%';$('progressDetail').textContent=`เสร็จ ${n} จาก 7 โมดูล`;$('progressFill').style.width=(n/7*100)+'%';
+ document.querySelectorAll('.nav-item').forEach((el,i)=>{el.classList.toggle('complete',!!state.done[i]);el.classList.toggle('active',current===i);el.querySelector('.nav-num').textContent=state.done[i]?'✓':i+1});}
+function renderNav(){ $('nav').innerHTML=MODULES.map((m,i)=>`<button type="button" class="nav-item" data-nav="${i}"><span class="nav-num">${i+1}</span><span><b>${escapeHtml(m.title)}</b><small>${escapeHtml(m.sub)}</small></span></button>`).join('');$('moduleSelect').innerHTML=MODULES.map((m,i)=>`<option value="${i}">${i+1}. ${escapeHtml(m.title)}</option>`).join('');}
+function header(i,intro){return `<div class="module-head"><div><span class="pill">STEP ${i+1} / 7 • ${MODULES[i].minutes} นาที (โดยประมาณ)</span><h2>${MODULES[i].title}</h2><p>${intro}</p></div><span id="status" class="status">${state.done[i]?'✓ เรียนจบแล้ว':'กำลังเรียน'}</span></div>`;}
+function card(title,body){return `<section class="card"><h3>${title}</h3>${body}</section>`}
+function code(s){return `<pre class="block-code"><code>${escapeHtml(s.trim())}</code></pre>`}
+function finish(i){return `<div class="card"><h3>✅ เช็กความเข้าใจและจบโมดูล</h3><p class="small">หลังศึกษาและทดลองทำตามขั้นตอนแล้ว กดบันทึกว่าเรียนจบ (นักเรียนสามารถย้อนกลับมาแก้ไขได้)</p><button class="finish" data-finish="${i}">${state.done[i]?'✓ เรียนจบแล้ว • กดเพื่อยกเลิก':'ทำโมดูลนี้เสร็จแล้ว'}</button></div>`}
+function lesson0(){return header(0,'เรียนรู้ปัญหา กำหนดเป้าหมาย และรู้จักเครื่องมือก่อนเริ่มสร้างแอป')+
+card('สถานการณ์ปัญหา',`<p>นักเรียนลืมการบ้านหรือจำวันส่งไม่ได้ เราจะสร้าง <b>My Homework</b> เพื่อบันทึกชื่อวิชา รายละเอียดงาน วันกำหนดส่ง และเปิดดูย้อนหลังได้</p><div class="grid3"><div class="mini-card"><strong>ข้อมูลเข้า (Input)</strong><p>กรอกวิชา งาน และกำหนดส่ง</p></div><div class="mini-card"><strong>ประมวลผล (Process)</strong><p>ตรวจช่องว่าง เพิ่ม–ลบรายการ</p></div><div class="mini-card"><strong>ผลลัพธ์ (Output)</strong><p>แสดงรายการและบันทึกถาวร</p></div></div>`)+
+card('ใบความรู้: รู้จัก MIT App Inventor',`<p><b>Designer</b> คือหน้าจอลากส่วนประกอบ (Component) มาจัดวาง ส่วน <b>Blocks</b> คือหน้าจอต่อบล็อกคำสั่งให้แอปทำงาน</p><div class="grid2"><div class="mini-card"><strong>Event</strong><p>เหตุการณ์ เช่น when btnSave.Click</p></div><div class="mini-card"><strong>Variable</strong><p>ตัวแปรสำหรับเก็บข้อมูล เช่น homeworkList</p></div><div class="mini-card"><strong>List</strong><p>รายการข้อมูลหลายรายการ</p></div><div class="mini-card"><strong>TinyDB</strong><p>จัดเก็บข้อมูลไว้บนอุปกรณ์แม้ปิดแอป</p></div></div><div class="tip">แอปที่เรียนวันนี้เป็น <b>แอป Android</b> ออกแบบบนคอมพิวเตอร์และทดสอบด้วย MIT AI2 Companion หรือเครื่องมือที่ MIT รองรับ</div>`)+
+card('แผนงานของเรา',`<ol class="steps"><li>สร้างหน้าจอและตั้งชื่อ Components</li><li>เขียนบล็อกตรวจข้อมูลและเพิ่มรายการ</li><li>จัดเก็บข้อมูลใน TinyDB</li><li>โหลดข้อมูลตอนเปิดแอปใหม่</li><li>เลือกรายการและลบ</li><li>ทดสอบและปรับปรุง</li><li>บันทึกใบงานและส่งหลักฐาน</li></ol><p><a href="https://ai2.appinventor.mit.edu/" target="_blank" rel="noopener noreferrer">เข้าใช้งาน MIT App Inventor ↗</a></p>`)+finish(0)}
+function lesson1(){return header(1,'ทำตามแต่ละขั้นในหน้า Designer โดยตรวจชื่อ Components ให้ตรงกันทุกตัว')+
+card('ขั้นที่ 1 — สร้างโปรเจกต์และตั้งค่า Screen1',`<ol class="steps"><li>เข้าเว็บไซต์ <a href="https://ai2.appinventor.mit.edu/" target="_blank" rel="noopener noreferrer">MIT App Inventor ↗</a> และลงชื่อเข้าใช้</li><li>คลิก <b>Projects → Start New Project</b></li><li>ตั้งชื่อ <code>MyHomework_M3</code> แล้วคลิก OK</li><li>คลิก <b>Screen1</b> ใน Components และตั้งค่าตามตาราง</li></ol><div class="scroll"><table class="properties"><thead><tr><th>Property</th><th>ค่า</th></tr></thead><tbody><tr><td>Title</td><td>My Homework</td></tr><tr><td>BackgroundColor</td><td>White</td></tr><tr><td>AlignHorizontal</td><td>Center</td></tr><tr><td>Scrollable</td><td>True</td></tr><tr><td>Sizing</td><td>Responsive</td></tr><tr><td>TitleVisible</td><td>True</td></tr></tbody></table></div>`)+
+card('ขั้นที่ 2 — ดูตัวอย่างหน้าจอเป้าหมาย',`<div class="preview"><div class="preview-header"><b>▣ My Homework</b><br><small>สมุดบันทึกการบ้านของฉัน</small></div><label>ชื่อวิชา</label><div class="fake-field">กรอกชื่อวิชา</div><label>รายละเอียดการบ้าน</label><div class="fake-field">รายละเอียดการบ้าน</div><label>วันกำหนดส่ง</label><div class="fake-field">เช่น 10/11/2569</div><div class="fake-button">＋ บันทึกการบ้าน</div><b>รายการการบ้าน</b><div class="fake-task">คณิตศาสตร์ | หน้า 25 | ส่ง 12/11/2569</div><div class="fake-task">ภาษาอังกฤษ | คำศัพท์ 20 คำ | ส่ง 13/11/2569</div><div class="fake-button" style="background:#bf3447">ลบรายการที่เลือก</div><small>การบ้านทั้งหมด 2 รายการ</small></div><p class="small">ภาพจำลองสำหรับดูตำแหน่งและลำดับ Components เท่านั้น</p>`)+
+card('ขั้นที่ 3 — ลาก Components และตั้งชื่อ',`<p>คลิก <b>Palette → Layout → VerticalArrangement</b> ลากลง Viewer ก่อน แล้วตั้ง Width เป็น Fill parent และ Height เป็น Automatic จากนั้นลาก Component อื่น ๆ <b>ไว้ภายใน</b> VerticalArrangement1 ตามลำดับ</p><div class="scroll"><table class="properties"><thead><tr><th>Palette → Component</th><th>Rename เป็น</th><th>Properties หลัก</th></tr></thead><tbody>
+<tr><td>Layout → VerticalArrangement</td><td>VerticalArrangement1</td><td>Width: Fill parent; AlignHorizontal: Center</td></tr>
+<tr><td>User Interface → Label</td><td>lblTitle</td><td>Text: สมุดบันทึกการบ้าน; FontSize: 24; FontBold: True</td></tr>
+<tr><td>User Interface → Label</td><td>lblSubtitle</td><td>Text: My Homework M.3</td></tr>
+<tr><td>User Interface → TextBox</td><td>txtSubject</td><td>Hint: กรอกชื่อวิชา; Width: Fill parent</td></tr>
+<tr><td>User Interface → TextBox</td><td>txtHomework</td><td>Hint: รายละเอียดการบ้าน; Width: Fill parent</td></tr>
+<tr><td>User Interface → TextBox</td><td>txtDueDate</td><td>Hint: กำหนดส่ง เช่น 10/11/2569; Width: Fill parent</td></tr>
+<tr><td>User Interface → Button</td><td>btnSave</td><td>Text: บันทึกการบ้าน; BackgroundColor: Blue</td></tr>
+<tr><td>User Interface → Label</td><td>lblListTitle</td><td>Text: รายการการบ้าน; FontBold: True</td></tr>
+<tr><td>User Interface → ListView</td><td>ListView1</td><td>Width: Fill parent; Height: 200 pixels</td></tr>
+<tr><td>User Interface → Button</td><td>btnDelete</td><td>Text: ลบรายการที่เลือก; BackgroundColor: Red</td></tr>
+<tr><td>User Interface → Label</td><td>lblCount</td><td>Text: การบ้านทั้งหมด 0 รายการ</td></tr>
+<tr><td>Storage → TinyDB</td><td>TinyDB1</td><td>Non-visible; ใช้ค่าเริ่มต้น</td></tr>
+<tr><td>User Interface → Notifier</td><td>Notifier1</td><td>Non-visible; ใช้ค่าเริ่มต้น</td></tr>
+</tbody></table></div><div class="tip">คลิก Component ในแถบ Components แล้วกด <b>Rename</b> เพื่อตั้งชื่อให้ตรงตาราง TinyDB และ Notifier เป็น Non-visible Components จึงแสดงด้านล่าง Viewer ไม่ใช่ปุ่มบนหน้าจอ</div>`)+
+card('ขั้นที่ 4 — ตรวจงาน Designer',`<p>เปิดรายการ Components แล้วตรวจว่า <b>TextBox = 3, Button = 2, ListView = 1, TinyDB = 1, Notifier = 1</b> และ Label = 4</p><p>ถ้าไม่พบปุ่มหรือรายการ ให้ตรวจว่าลาก Component เข้าภายใน VerticalArrangement1 แล้วหรือยัง</p>`)+finish(1)}
+const BLOCKS=[
+{title:'Blocks 1 — ตัวแปร List',explain:'Built-in → Variables + Lists: ตัวแปร global homeworkList เริ่มต้นด้วยรายการว่าง',raw:`initialize global homeworkList to
+    create empty list`,why:'เก็บรายการการบ้านทั้งหมดไว้ในตัวแปรเดียว'},
+{title:'Blocks 2 — Procedure RefreshList',explain:'Built-in → Procedures ใช้ to procedure do แล้ว Rename เป็น RefreshList',raw:`to RefreshList
+    set ListView1.Elements to get global homeworkList
+    set lblCount.Text to join
+        "การบ้านทั้งหมด "
+        length of list (get global homeworkList)
+        " รายการ"`,why:'เมื่อรายการเปลี่ยน จะอัปเดต ListView และจำนวนรายการพร้อมกัน'},
+{title:'Blocks 3 — ปุ่มบันทึก',explain:'เลือก btnSave → when btnSave.Click และใช้ Control → if then else, Logic → or, Text → trim/join, Lists → add items to list',raw:`when btnSave.Click
+    if (trim(txtSubject.Text) = "")
+       OR (trim(txtHomework.Text) = "")
+       OR (trim(txtDueDate.Text) = "")
+    then
+       call Notifier1.ShowAlert
+           notice = "กรุณากรอกข้อมูลให้ครบ"
+    else
+       add items to list
+           list = get global homeworkList
+           item = join
+               txtSubject.Text
+               " | "
+               txtHomework.Text
+               " | ส่ง "
+               txtDueDate.Text
+
+       call TinyDB1.StoreValue
+           tag = "homework"
+           valueToStore = get global homeworkList
+
+       call RefreshList
+       set txtSubject.Text to ""
+       set txtHomework.Text to ""
+       set txtDueDate.Text to ""
+       set ListView1.SelectionIndex to 0
+       call Notifier1.ShowAlert
+           notice = "บันทึกการบ้านเรียบร้อย"`,why:'ตรวจข้อมูลก่อนเพิ่ม ป้องกันการบ้านว่าง และบันทึกรายการล่าสุดลง TinyDB'},
+{title:'Blocks 4 — โหลดข้อมูลตอนเปิดแอป',explain:'เลือก Screen1 → when Screen1.Initialize',raw:`when Screen1.Initialize
+    set global homeworkList to
+        call TinyDB1.GetValue
+            tag = "homework"
+            valueIfTagNotThere = create empty list
+    call RefreshList`,why:'ถ้าเคยบันทึกจะโหลดรายการกลับมา ถ้าไม่เคยบันทึกจะเริ่มจาก list ว่าง'},
+{title:'Blocks 5 — เมื่อเลือกการบ้าน',explain:'เลือก ListView1 → when ListView1.AfterPicking',raw:`when ListView1.AfterPicking
+    call Notifier1.ShowAlert
+        notice = join
+            "เลือก: "
+            ListView1.Selection`,why:'แสดงรายการที่นักเรียนแตะ เพื่อยืนยันก่อนลบ'},
+{title:'Blocks 6 — ปุ่มลบการบ้าน',explain:'เลือก btnDelete → when btnDelete.Click',raw:`when btnDelete.Click
+    if (ListView1.SelectionIndex > 0)
+       AND (ListView1.SelectionIndex <=
+            length of list (get global homeworkList))
+    then
+        remove list item
+            list = get global homeworkList
+            index = ListView1.SelectionIndex
+
+        call TinyDB1.StoreValue
+            tag = "homework"
+            valueToStore = get global homeworkList
+        call RefreshList
+        set ListView1.SelectionIndex to 0
+        call Notifier1.ShowAlert
+            notice = "ลบรายการเรียบร้อย"
+    else
+        call Notifier1.ShowAlert
+            notice = "กรุณาเลือกรายการที่ต้องการลบ"`,why:'SelectionIndex = 0 แปลว่ายังไม่เลือก; บันทึกหลังลบเพื่อให้ข้อมูลไม่กลับมา'}
+];
+function lesson2(){return header(2,'ต่อบล็อกทีละชุดในหน้า Blocks และทดสอบหลังทำเสร็จแต่ละชุด')+
+card('วิธีค้นหาบล็อก',`<div class="grid2"><div class="mini-card"><strong>Built-in</strong><p>Control, Logic, Math, Text, Lists, Variables, Procedures</p></div><div class="mini-card"><strong>Component Blocks</strong><p>Screen1, btnSave, btnDelete, ListView1, TinyDB1, Notifier1</p></div></div><div class="tip">ตัวอย่างด้านล่างเป็น <b>ผังคำสั่งแทนภาพบล็อก</b> ให้นักเรียนลากบล็อกจริงจากหมวดที่ระบุ ไม่ใช่การพิมพ์โค้ดลง App Inventor</div>`)+
+BLOCKS.map((b,i)=>card(`<span class="pill">ชุด ${i+1}/6</span> ${b.title}`,`<p>${b.explain}</p>${code(b.raw)}<div class="tip"><b>ทำไมต้องทำ?</b> ${b.why}</div><button class="soft" type="button" data-copy-block="${i}">⧉ คัดลอกผังคำสั่งเพื่อใช้ดูประกอบ</button>`)).join('')+
+card('ข้อควรระวังเมื่อใช้ Blocks',`<ul><li>ชื่อ Component ต้องตรงกับ Designer ทุกตัว</li><li>Tag ใน StoreValue และ GetValue ต้องเหมือนกัน คือ <code>homework</code></li><li>รายการแรกของ ListView มี SelectionIndex = 1 ส่วน 0 หมายถึงไม่เลือก</li><li>การเก็บแบบข้อความรวมเป็นวิธีง่ายเพื่อฝึกระดับเริ่มต้น ยังไม่รองรับการแก้ไขแยกฟิลด์หรือเรียงตามวันที่จริง</li><li>หลังบันทึกและหลังลบ ต้อง StoreValue เพื่อรักษาข้อมูลล่าสุดไว้</li></ul>`)+finish(2)}
+function lesson3(){return header(3,'แบ่งเวลาฝึกปฏิบัติเป็น 4 คาบ คาบละ 50 นาที พร้อมกิจกรรมจับคู่')+
+card('ตารางกิจกรรมการเรียนรู้',`<div class="scroll"><table class="properties"><thead><tr><th>คาบ</th><th>กิจกรรม</th><th>หลักฐาน</th></tr></thead><tbody><tr><td>1 • 50 นาที</td><td>ตั้งคำถามปัญหา 5 นาที • รู้จัก Designer 10 นาที • สร้างหน้าจอ 30 นาที • สรุป 5 นาที</td><td>หน้าจอ Designer</td></tr><tr><td>2 • 50 นาที</td><td>ทบทวน 5 นาที • เรียน Variables & Lists 10 นาที • ต่อ Blocks 1–3 จำนวน 30 นาที • ทดลอง 5 นาที</td><td>กดเพิ่มการบ้านได้</td></tr><tr><td>3 • 50 นาที</td><td>ทบทวน 5 นาที • เรียน TinyDB 10 นาที • ต่อ Blocks 4–6 จำนวน 30 นาที • ทดลอง 5 นาที</td><td>ปิด–เปิดและลบได้</td></tr><tr><td>4 • 50 นาที</td><td>แก้บั๊ก 15 นาที • ทดสอบ 15 นาที • นำเสนอ 15 นาที • สะท้อนผล 5 นาที</td><td>ทดสอบและส่งไฟล์</td></tr></tbody></table></div>`)+
+card('Pair Programming: ช่วยกันอย่างไร',`<ol><li>จับคู่ 2 คน: <b>Driver</b> ลาก Blocks และ <b>Navigator</b> อ่านขั้นตอน ตรวจชื่อและเงื่อนไข</li><li>สลับหน้าที่ทุก 10–15 นาที</li><li>เมื่อพบข้อผิดพลาด ให้อ่านชื่อบล็อก ตรวจการต่อ และทดสอบทีละชุด</li><li>เมื่อทำได้แล้วอธิบายขั้นตอนให้คู่ของตนฟัง</li></ol><div class="tip">งานส่งเป็นรายบุคคลหรือรายคู่ได้ตามที่ครูกำหนด แต่ทุกคนต้องอธิบายการทำงานของ Blocks ได้</div>`)+finish(3)}
+function lesson4(){return header(4,'ทำใบงานของตนเองได้ทันที คำตอบและเช็กลิสต์จะถูกเก็บไว้ในเบราว์เซอร์เครื่องนี้')+
+card('ใบงานที่ 1 — ภารกิจสร้างแอป (9 ข้อ)',`<p>ชื่อ–สกุล: <b id="worksheetName"></b> <span class="small">(กรอกข้อมูลที่แถบเมนูด้านซ้าย หรือส่วนข้อมูลผู้เรียนด้านล่าง)</span></p><div id="checks">${CHECKS.map((t,i)=>`<label class="check-row"><input type="checkbox" data-check="${i}" ${state.checks[i]?'checked':''}><span>${i+1}. ${escapeHtml(t)}</span></label>`).join('')}</div><div class="result" id="checkCount"></div>`)+
+card('ใบงานที่ 2 — คำถามหลังการปฏิบัติ',QUESTIONS.map((q,i)=>`<label class="field-label" for="answer${i}">${i+1}. ${escapeHtml(q)}</label><textarea id="answer${i}" data-answer="${i}" placeholder="เขียนคำตอบด้วยภาษาของตนเอง">${escapeHtml(state.answers[i])}</textarea>`).join('')+
+`<div class="tip">การตอบใบงานต้องใช้ความเข้าใจของตนเอง ครูสามารถเปิดตรวจคำตอบจากไฟล์ผลการเรียนที่นักเรียนส่งออก</div>`)+
+card('แบบทดสอบความรู้ 5 ข้อ (ปรนัย)',`<p class="small">เลือกคำตอบที่ถูกที่สุด ระบบจะให้คะแนนพร้อมเฉลยหลังคลิกตรวจคำตอบ สามารถแก้ไขและตรวจใหม่ได้</p>`+
+QUIZ.map((q,i)=>`<fieldset class="module-quiz"><legend><b>${i+1}. ${escapeHtml(q.q)}</b></legend>${q.options.map((op,j)=>`<label class="quiz-option"><input type="radio" name="quiz${i}" value="${j}" ${Number(state.quiz.answers[i])===j&&state.quiz.answers[i]!==undefined?'checked':''}><span>${escapeHtml(op)}</span></label>`).join('')}</fieldset>`).join('')+`<button id="gradeQuiz" class="primary">ตรวจคำตอบแบบทดสอบ</button><div id="quizResult" aria-live="polite"></div>`)+finish(4)}
+function lesson5(){return header(5,'ทดสอบแอปจริงบนอุปกรณ์ แล้วเลือกผลทดสอบตามความเป็นจริง')+
+card('เชื่อมต่อ MIT AI2 Companion',`<ol><li>ติดตั้ง <b>MIT AI2 Companion</b> บนอุปกรณ์ Android ที่รองรับ</li><li>เปิดโปรเจกต์ที่สร้างบนคอมพิวเตอร์</li><li>คลิก <b>Connect → AI Companion</b> แล้วสแกน QR Code</li><li>ทดลองเพิ่มข้อมูล 3 รายการ เลือกและลบ 1 รายการ</li><li>ปิดและเปิดแอปอีกครั้ง ตรวจว่าการบ้านที่เหลืออยู่ครบ</li></ol><div class="tip warning">ถ้า Companion เชื่อมต่อไม่ได้ ให้ตรวจเครือข่าย Wi‑Fi และข้อจำกัดเครือข่ายโรงเรียน การเก็บข้อมูลจริงของ TinyDB ต้องทดลองบนแอปที่สร้าง ไม่ใช่บนเว็บบทเรียนนี้</div>`)+
+card('แบบบันทึกผลการทดสอบ 6 กรณี',TESTS.map((a,i)=>`<div class="module-quiz"><b>${i+1}. ${a[0]}</b><p class="small">ผลที่คาดหวัง: ${a[1]}</p><label><input type="radio" name="test${i}" value="pass" ${state.tests[i]==='pass'?'checked':''}> ผ่าน</label> &nbsp; <label><input type="radio" name="test${i}" value="fail" ${state.tests[i]==='fail'?'checked':''}> ไม่ผ่าน</label> &nbsp; <label><input type="radio" name="test${i}" value="notyet" ${!state.tests[i]||state.tests[i]==='notyet'?'checked':''}> ยังไม่ทดสอบ</label></div>`).join('')+`<div class="result" id="testSummary"></div>`)+
+card('เกณฑ์ประเมินชิ้นงาน 20 คะแนน (ครูผู้สอน)',`<div class="tip">คะแนนส่วนนี้เป็นช่องให้ <b>ครู</b> ประเมินผลงานจริง หากนักเรียนกรอกเองจะเป็นเพียงการประเมินตนเอง ไม่ใช่คะแนนที่ครูรับรอง</div><div class="scroll"><table class="properties"><thead><tr><th>รายการ</th><th>เต็ม</th><th>คะแนนที่ให้</th></tr></thead><tbody>${RUBRIC.map((r,i)=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td><select class="rubric-score" data-rubric="${i}">${Array.from({length:r[1]+1},(_,n)=>`<option value="${n}" ${state.rubric[i]===n?'selected':''}>${n}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div><div id="rubricSummary" class="result"></div><p class="small">เกณฑ์ผ่าน 70% คือ 14/20 คะแนน (ตามเกณฑ์ตัวอย่าง สามารถปรับในรายวิชาของครูได้)</p>`)+finish(5)}
+function lesson6(){return header(6,'สะท้อนสิ่งที่เรียนและส่งผลงานให้ครูตรวจ')+
+card('เขียนสะท้อนผลการเรียนรู้',[
+'พบปัญหาอะไรระหว่างทำแอป และแก้ไขอย่างไร?',
+'แอปบันทึกการบ้านช่วยแก้ปัญหาในชีวิตประจำวันของนักเรียนอย่างไร?',
+'ถ้าพัฒนาแอปต่ออีกหนึ่งคาบ นักเรียนอยากเพิ่มฟังก์ชันอะไร?'
+].map((q,i)=>`<label class="field-label" for="reflection${i}">${i+1}. ${q}</label><textarea id="reflection${i}" data-reflection="${i}" placeholder="คำตอบของนักเรียน">${escapeHtml(state.reflection[i])}</textarea>`).join(''))+
+card('แบบส่งผลงาน',`<p>สิ่งที่ควรส่งให้ครู: <b>ไฟล์โครงการ .aia</b> จาก MIT App Inventor, <b>ภาพหน้าจอ Designer และ Blocks</b>, และ <b>ไฟล์ผลการเรียน .json</b> จากเว็บไซต์นี้</p><ol><li>ใน MIT App Inventor เลือก <b>Projects → Export selected project (.aia) to my computer</b> (ชื่อเมนูอาจต่างตามเวอร์ชัน)</li><li>ถ่ายภาพหน้าจอ Designer และ Blocks ที่ทำครบ</li><li>คลิกปุ่ม <b>ส่งออกผลการเรียน</b> ด้านล่าง ระบบจะดาวน์โหลดไฟล์ JSON</li><li>นำไฟล์ทั้งหมดส่งผ่านช่องทางที่ครูกำหนด เช่น Google Classroom หรือระบบ LMS ของโรงเรียน</li></ol><div class="tip">เว็บไซต์นี้ยังไม่มีระบบบัญชีนักเรียนหรือการส่งข้อมูลไปยังเซิร์ฟเวอร์ ครูจะยังไม่เห็นผลอัตโนมัติ นักเรียนต้องส่งไฟล์ด้วยตนเอง</div><div class="footer-tools"><button class="primary" id="finalExport">↓ ดาวน์โหลดผลการเรียน (.json)</button><button class="soft" id="finalPrint">⎙ พิมพ์สรุป</button></div>`)+
+card('ข้อมูลนักเรียนสำหรับใบงาน',`<label class="field-label" for="name2">ชื่อ–สกุล</label><input class="answer-input" id="name2" value="${escapeHtml(state.profile.name)}" placeholder="กรอกชื่อ–สกุล"><div class="grid2"><div><label class="field-label" for="room2">ห้อง</label><input class="answer-input" id="room2" value="${escapeHtml(state.profile.room)}" placeholder="ม.3/1"></div><div><label class="field-label" for="no2">เลขที่</label><input class="answer-input" id="no2" value="${escapeHtml(state.profile.no)}" placeholder="1"></div></div>`)+finish(6)}
+const lessons=[lesson0,lesson1,lesson2,lesson3,lesson4,lesson5,lesson6];
+function render(i){current=Math.max(0,Math.min(6,i));$('moduleArea').innerHTML=lessons[current]();$('moduleSelect').value=String(current);$('prevBtn').disabled=current===0;$('nextBtn').disabled=current===6;$('stepLabel').textContent=`${current+1} / 7`;updateProgress();wireCurrent();window.scrollTo({top:0,behavior:'instant'});}
+function wireCurrent(){
+ document.querySelectorAll('[data-finish]').forEach(btn=>btn.addEventListener('click',()=>{const i=+btn.dataset.finish;state.done[i]=!state.done[i];save();render(i)}));
+ document.querySelectorAll('[data-copy-block]').forEach(btn=>btn.addEventListener('click',async()=>{const raw=BLOCKS[+btn.dataset.copyBlock].raw;try{await navigator.clipboard.writeText(raw);btn.textContent='✓ คัดลอกแล้ว'}catch(e){alert('ไม่สามารถคัดลอกโดยอัตโนมัติ กรุณาเลือกข้อความในกรอบ') }}));
+ document.querySelectorAll('[data-check]').forEach(el=>el.addEventListener('change',()=>{state.checks[+el.dataset.check]=el.checked;save();refreshCheckCount()}));
+ document.querySelectorAll('[data-answer]').forEach(el=>el.addEventListener('input',()=>{state.answers[+el.dataset.answer]=el.value;save()}));
+ document.querySelectorAll('[data-reflection]').forEach(el=>el.addEventListener('input',()=>{state.reflection[+el.dataset.reflection]=el.value;save()}));
+ document.querySelectorAll('input[type=radio][name^="quiz"]').forEach(el=>el.addEventListener('change',()=>{state.quiz.answers[Number(el.name.slice(4))]=Number(el.value);state.quiz.submitted=false;save();$('quizResult').innerHTML=''}));
+ document.querySelectorAll('input[type=radio][name^="test"]').forEach(el=>el.addEventListener('change',()=>{state.tests[Number(el.name.slice(4))]=el.value==='notyet'?'':el.value;save();refreshTests()}));
+ document.querySelectorAll('[data-rubric]').forEach(el=>el.addEventListener('change',()=>{state.rubric[+el.dataset.rubric]=Number(el.value);save();refreshRubric()}));
+ const grade=$('gradeQuiz');if(grade)grade.addEventListener('click',()=>{state.quiz.submitted=true;save();refreshQuiz()});
+ const exportFinal=$('finalExport');if(exportFinal)exportFinal.addEventListener('click',exportData);
+ const printFinal=$('finalPrint');if(printFinal)printFinal.addEventListener('click',printReport);
+ [['name2','name'],['room2','room'],['no2','no']].forEach(([id,field])=>{const el=$(id);if(el)el.addEventListener('input',()=>{state.profile[field]=el.value;save();syncProfile()})});
+ refreshCheckCount();refreshTests();refreshRubric();refreshQuiz();syncProfile();
+}
+function refreshCheckCount(){if($('checkCount'))$('checkCount').textContent=`ทำแล้ว ${state.checks.filter(Boolean).length} / 9 ภารกิจ`}
+function refreshTests(){if($('testSummary'))$('testSummary').textContent=`ผ่าน ${state.tests.filter(x=>x==='pass').length} / 6 • ไม่ผ่าน ${state.tests.filter(x=>x==='fail').length} • ยังไม่ทดสอบ ${state.tests.filter(x=>!x).length}`}
+function refreshRubric(){if($('rubricSummary')){const n=state.rubric.reduce((a,b)=>a+b,0);$('rubricSummary').textContent=`รวม ${n}/20 คะแนน — ${n>=14?'ผ่านเกณฑ์ 70%':'ยังไม่ผ่านเกณฑ์ 70%'}`}}
+function refreshQuiz(){if(!$('quizResult')||!state.quiz.submitted)return;const correct=QUIZ.reduce((total,q,i)=>total+(state.quiz.answers[i]===q.correct?1:0),0);$('quizResult').innerHTML=`<div class="result">ได้ ${correct}/${QUIZ.length} คะแนน</div>`+QUIZ.map((q,i)=>`<p class="small"><b>ข้อ ${i+1}:</b> ${state.quiz.answers[i]===q.correct?'✓ ถูกต้อง':'✕ ยังไม่ถูกต้อง'} — เฉลย: ${escapeHtml(q.options[q.correct])}<br>${escapeHtml(q.why)}</p>`).join('')}
+function syncProfile(){const e=$('worksheetName');if(e)e.textContent=state.profile.name||'....................................';[['studentName','name'],['studentClass','room'],['studentNumber','no']].forEach(([id,key])=>{const el=$(id);if(el&&el.value!==state.profile[key]&&document.activeElement!==el)el.value=state.profile[key]})}
+function exportData(){const payload={course:'My Homework Lab — MIT App Inventor ม.3',version:1,exportedAt:new Date().toISOString(),...state,quizScore:QUIZ.reduce((t,q,i)=>t+(state.quiz.answers[i]===q.correct?1:0),0),rubricTotal:state.rubric.reduce((a,b)=>a+b,0)};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`MyHomework_M3_${(state.profile.no||'student').replace(/[^a-zA-Z0-9ก-๙_-]/g,'_')}_progress.json`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function printReport(){const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ใบงาน My Homework ม.3</title><style>body{font-family:Tahoma,sans-serif;margin:25px;line-height:1.65}h1{font-size:22px}h2{font-size:17px;margin-top:22px}p{white-space:pre-wrap}li{margin-bottom:6px}@media print{body{margin:12mm}}</style></head><body><h1>ใบงานและผลการเรียน My Homework – ม.3</h1><p>ชื่อ: ${escapeHtml(state.profile.name)} ห้อง: ${escapeHtml(state.profile.room)} เลขที่: ${escapeHtml(state.profile.no)}</p><p>เรียนจบ ${state.done.filter(Boolean).length}/7 โมดูล</p><h2>ภารกิจที่ทำ</h2><ol>${CHECKS.map((t,i)=>`<li>${state.checks[i]?'✓':'□'} ${escapeHtml(t)}</li>`).join('')}</ol><h2>คำถามใบงาน</h2>${QUESTIONS.map((q,i)=>`<p><b>${i+1}. ${escapeHtml(q)}</b><br>${escapeHtml(state.answers[i])}</p>`).join('')}<h2>ผลทดสอบ</h2><ol>${TESTS.map((t,i)=>`<li>${escapeHtml(t[0])} — ${state.tests[i]==='pass'?'ผ่าน':state.tests[i]==='fail'?'ไม่ผ่าน':'ยังไม่ทดสอบ'}</li>`).join('')}</ol><h2>แบบทดสอบ</h2><p>${QUIZ.reduce((t,q,i)=>t+(state.quiz.answers[i]===q.correct?1:0),0)}/5 คะแนน ${state.quiz.submitted?'(ตรวจแล้ว)':'(ยังไม่ตรวจ)'}</p><h2>ประเมินชิ้นงาน</h2><ol>${RUBRIC.map((r,i)=>`<li>${escapeHtml(r[0])}: ${state.rubric[i]}/${r[1]}</li>`).join('')}</ol><h2>สะท้อนผล</h2>${state.reflection.map((x,i)=>`<p>${i+1}. ${escapeHtml(x)}</p>`).join('')}</body></html>`;const w=window.open('','_blank');if(!w){alert('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ กรุณาอนุญาต Pop-up');return}w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),450)}
+renderNav();$('studentName').addEventListener('input',e=>{state.profile.name=e.target.value;save();syncProfile()});$('studentClass').addEventListener('input',e=>{state.profile.room=e.target.value;save();syncProfile()});$('studentNumber').addEventListener('input',e=>{state.profile.no=e.target.value;save();syncProfile()});$('nav').addEventListener('click',e=>{const b=e.target.closest('[data-nav]');if(b)render(Number(b.dataset.nav))});$('moduleSelect').addEventListener('change',e=>render(Number(e.target.value)));$('prevBtn').addEventListener('click',()=>render(current-1));$('nextBtn').addEventListener('click',()=>render(current+1));$('exportBtn').addEventListener('click',exportData);$('printBtn').addEventListener('click',printReport);$('resetBtn').addEventListener('click',()=>{if(confirm('ล้างความก้าวหน้า ใบงาน และคะแนนที่บันทึกไว้บนอุปกรณ์นี้ทั้งหมด?')){state=makeDefault();save();render(0)}});render(0);
