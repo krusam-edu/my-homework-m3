@@ -66,78 +66,11 @@ card('ขั้นที่ 3 — ลาก Components และตั้งช�
 <tr><td>User Interface → Notifier</td><td>Notifier1</td><td>Non-visible; ใช้ค่าเริ่มต้น</td></tr>
 </tbody></table></div><div class="tip">คลิก Component ในแถบ Components แล้วกด <b>Rename</b> เพื่อตั้งชื่อให้ตรงตาราง TinyDB และ Notifier เป็น Non-visible Components จึงแสดงด้านล่าง Viewer ไม่ใช่ปุ่มบนหน้าจอ</div>`)+
 card('ขั้นที่ 4 — ตรวจงาน Designer',`<p>เปิดรายการ Components แล้วตรวจว่า <b>TextBox = 3, Button = 2, ListView = 1, TinyDB = 1, Notifier = 1</b> และ Label = 4</p><p>ถ้าไม่พบปุ่มหรือรายการ ให้ตรวจว่าลาก Component เข้าภายใน VerticalArrangement1 แล้วหรือยัง</p>`)+finish(1)}
-const BLOCKS=[
-{title:'Blocks 1 — ตัวแปร List',explain:'Built-in → Variables + Lists: ตัวแปร global homeworkList เริ่มต้นด้วยรายการว่าง',raw:`initialize global homeworkList to
-    create empty list`,why:'เก็บรายการการบ้านทั้งหมดไว้ในตัวแปรเดียว'},
-{title:'Blocks 2 — Procedure RefreshList',explain:'Built-in → Procedures ใช้ to procedure do แล้ว Rename เป็น RefreshList',raw:`to RefreshList
-    set ListView1.Elements to get global homeworkList
-    set lblCount.Text to join
-        "การบ้านทั้งหมด "
-        length of list (get global homeworkList)
-        " รายการ"`,why:'เมื่อรายการเปลี่ยน จะอัปเดต ListView และจำนวนรายการพร้อมกัน'},
-{title:'Blocks 3 — ปุ่มบันทึก',explain:'เลือก btnSave → when btnSave.Click และใช้ Control → if then else, Logic → or, Text → trim/join, Lists → add items to list',raw:`when btnSave.Click
-    if (trim(txtSubject.Text) = "")
-       OR (trim(txtHomework.Text) = "")
-       OR (trim(txtDueDate.Text) = "")
-    then
-       call Notifier1.ShowAlert
-           notice = "กรุณากรอกข้อมูลให้ครบ"
-    else
-       add items to list
-           list = get global homeworkList
-           item = join
-               txtSubject.Text
-               " | "
-               txtHomework.Text
-               " | ส่ง "
-               txtDueDate.Text
-
-       call TinyDB1.StoreValue
-           tag = "homework"
-           valueToStore = get global homeworkList
-
-       call RefreshList
-       set txtSubject.Text to ""
-       set txtHomework.Text to ""
-       set txtDueDate.Text to ""
-       set ListView1.SelectionIndex to 0
-       call Notifier1.ShowAlert
-           notice = "บันทึกการบ้านเรียบร้อย"`,why:'ตรวจข้อมูลก่อนเพิ่ม ป้องกันการบ้านว่าง และบันทึกรายการล่าสุดลง TinyDB'},
-{title:'Blocks 4 — โหลดข้อมูลตอนเปิดแอป',explain:'เลือก Screen1 → when Screen1.Initialize',raw:`when Screen1.Initialize
-    set global homeworkList to
-        call TinyDB1.GetValue
-            tag = "homework"
-            valueIfTagNotThere = create empty list
-    call RefreshList`,why:'ถ้าเคยบันทึกจะโหลดรายการกลับมา ถ้าไม่เคยบันทึกจะเริ่มจาก list ว่าง'},
-{title:'Blocks 5 — เมื่อเลือกการบ้าน',explain:'เลือก ListView1 → when ListView1.AfterPicking',raw:`when ListView1.AfterPicking
-    call Notifier1.ShowAlert
-        notice = join
-            "เลือก: "
-            ListView1.Selection`,why:'แสดงรายการที่นักเรียนแตะ เพื่อยืนยันก่อนลบ'},
-{title:'Blocks 6 — ปุ่มลบการบ้าน',explain:'เลือก btnDelete → when btnDelete.Click',raw:`when btnDelete.Click
-    if (ListView1.SelectionIndex > 0)
-       AND (ListView1.SelectionIndex <=
-            length of list (get global homeworkList))
-    then
-        remove list item
-            list = get global homeworkList
-            index = ListView1.SelectionIndex
-
-        call TinyDB1.StoreValue
-            tag = "homework"
-            valueToStore = get global homeworkList
-        call RefreshList
-        set ListView1.SelectionIndex to 0
-        call Notifier1.ShowAlert
-            notice = "ลบรายการเรียบร้อย"
-    else
-        call Notifier1.ShowAlert
-            notice = "กรุณาเลือกรายการที่ต้องการลบ"`,why:'SelectionIndex = 0 แปลว่ายังไม่เลือก; บันทึกหลังลบเพื่อให้ข้อมูลไม่กลับมา'}
-];
 function lesson2(){return header(2,'ต่อบล็อกทีละชุดในหน้า Blocks และทดสอบหลังทำเสร็จแต่ละชุด')+
-card('วิธีค้นหาบล็อก',`<div class="grid2"><div class="mini-card"><strong>Built-in</strong><p>Control, Logic, Math, Text, Lists, Variables, Procedures</p></div><div class="mini-card"><strong>Component Blocks</strong><p>Screen1, btnSave, btnDelete, ListView1, TinyDB1, Notifier1</p></div></div><div class="tip">ตัวอย่างด้านล่างเป็น <b>ผังคำสั่งแทนภาพบล็อก</b> ให้นักเรียนลากบล็อกจริงจากหมวดที่ระบุ ไม่ใช่การพิมพ์โค้ดลง App Inventor</div>`)+
-BLOCKS.map((b,i)=>card(`<span class="pill">ชุด ${i+1}/6</span> ${b.title}`,`<p>${b.explain}</p>${code(b.raw)}<div class="tip"><b>ทำไมต้องทำ?</b> ${b.why}</div><button class="soft" type="button" data-copy-block="${i}">⧉ คัดลอกผังคำสั่งเพื่อใช้ดูประกอบ</button>`)).join('')+
-card('ข้อควรระวังเมื่อใช้ Blocks',`<ul><li>ชื่อ Component ต้องตรงกับ Designer ทุกตัว</li><li>Tag ใน StoreValue และ GetValue ต้องเหมือนกัน คือ <code>homework</code></li><li>รายการแรกของ ListView มี SelectionIndex = 1 ส่วน 0 หมายถึงไม่เลือก</li><li>การเก็บแบบข้อความรวมเป็นวิธีง่ายเพื่อฝึกระดับเริ่มต้น ยังไม่รองรับการแก้ไขแยกฟิลด์หรือเรียงตามวันที่จริง</li><li>หลังบันทึกและหลังลบ ต้อง StoreValue เพื่อรักษาข้อมูลล่าสุดไว้</li></ul>`)+finish(2)}
+card('เริ่มอ่านภาพ Blocks',`<p>เปิดโปรเจกต์เดิมแล้วคลิก <b>Blocks</b> ใช้ชื่อ Components ตามโมดูล Designer ทุกตัว ภาพ SVG ด้านล่างขยายช่องเสียบเพื่อให้อ่านง่าย นักเรียนต้องลากบล็อกจริงใน App Inventor</p><div class="grid2"><div class="mini-card"><strong>Built-in</strong><p>Variables, Lists, Procedures, Control, Logic, Math และ Text</p></div><div class="mini-card"><strong>Component Blocks</strong><p>คลิกชื่อ Screen1, TextBox, ปุ่ม, ListView1, TinyDB1 และ Notifier1 ที่แถบซ้าย</p></div></div><ul><li>บล็อกคืนค่ามีเดือยด้านซ้าย เสียบช่องค่าของบล็อกอื่น เช่น get, join, GetValue</li><li>บล็อกคำสั่งมีรอยต่อบน–ล่าง ต่อเรียงจากบนลงล่าง เช่น set, StoreValue</li><li>บล็อกเหตุการณ์และ procedure ครอบคำสั่งในช่อง do; if ครอบคำสั่งใน then และ else</li></ul><p>ภาพประกอบวาดใหม่สำหรับบทเรียน ไม่ใช่ภาพหน้าจอจากตัวแก้ไข สีและระยะอาจต่างตามเวอร์ชัน ให้ตรวจชื่อและช่องเสียบเป็นหลัก</p><p><a href="https://ai2a.appinventor.mit.edu/reference/blocks/" target="_blank" rel="noopener noreferrer">เอกสารหลัก MIT: Built-in Blocks ↗</a></p>`)+
+BLOCK_GUIDES.map((b,i)=>card(`<span class="pill">ชุด ${i+1}/6</span> ${escapeHtml(b.title)}`,`<figure class="blocks-figure"><div class="blocks-scroll" tabindex="0" role="region" aria-label="ภาพบล็อกชุด ${i+1} เลื่อนแนวนอนได้"><img class="blocks-image" src="assets/blocks/${i+1}.svg" alt="${escapeHtml(b.title)} — อ่านรายละเอียดการต่อทุกชิ้นในขั้นตอนด้านล่าง" loading="lazy"></div><figcaption>ต่อให้เดือยแนบช่องเสียบ ไม่มีบล็อกลอยแยกจากชุด • <a href="assets/blocks/${i+1}.svg" target="_blank" rel="noopener noreferrer">เปิดภาพขนาดเต็ม ↗</a></figcaption></figure><h4>ลากทีละชิ้น</h4><ol class="steps">${b.steps.map(t=>`<li>${escapeHtml(t)}</li>`).join('')}</ol><div class="tip"><b>ผลที่ควรได้:</b> ${escapeHtml(b.expected)}</div><div class="tip warning"><b>ถ้าทำไม่ได้:</b> ${escapeHtml(b.error)}</div>`)).join('')+
+card('ทดลองก่อนจบโมดูล',`<ol><li>เปิดแอปครั้งแรก ต้องเห็นจำนวน 0</li><li>กรอกแต่เว้นวรรคในช่องหนึ่งแล้วบันทึก ต้องแจ้งเตือนและไม่เพิ่ม</li><li>บันทึก 3 รายการ แล้วแตะรายการที่ 2 กดลบ ต้องเหลือรายการที่ 1 และ 3</li><li>กดลบซ้ำโดยไม่เลือก ต้องแจ้งเตือนและจำนวนเท่าเดิม</li><li>ปิดแล้วเปิดแอปที่ติดตั้งใหม่ ต้องยังมี 2 รายการ</li></ol><p>ใน AI Companion ข้อมูล TinyDB อาจใช้ร่วมกับโปรเจกต์อื่น ควรตั้ง Namespace ให้เฉพาะโปรเจกต์ใน Designer และทดสอบการคงอยู่ของข้อมูลด้วยแอปที่ติดตั้งจริงด้วย</p>`)+
+card('ตรวจชื่อและหมวดจาก MIT',`<p>ตรวจอ้างอิงเมื่อ 6 พฤศจิกายน 2569: ใช้ <b>Logic → =, or, and</b>, <b>Math → &gt;, ≤</b>, <b>Text → trim, join</b>, <b>Lists → create empty list, add items to list, length of list, remove list item</b>, <b>Variables → initialize global, get, set</b> และ <b>Procedures → procedure do / call</b></p><p>StoreValue และ GetValue อยู่ใน <b>TinyDB1</b>; AfterPicking, Selection และ SelectionIndex อยู่ใน <b>ListView1</b> ไม่ใช่ Built-in</p><ul>${['variables','lists','procedures','control','logic','math','text'].map(p=>`<li><a href="https://ai2a.appinventor.mit.edu/reference/blocks/${p}.html" target="_blank" rel="noopener noreferrer">${p}</a></li>`).join('')}<li><a href="https://ai2a.appinventor.mit.edu/reference/components/storage.html#TinyDB" target="_blank" rel="noopener noreferrer">TinyDB — Storage</a></li><li><a href="https://ai2a.appinventor.mit.edu/reference/components/userinterface.html#ListView" target="_blank" rel="noopener noreferrer">ListView / Notifier / TextBox / Button — User Interface</a></li></ul>`)+finish(2)}
 function lesson3(){return header(3,'แบ่งเวลาฝึกปฏิบัติเป็น 4 คาบ คาบละ 50 นาที พร้อมกิจกรรมจับคู่')+
 card('ตารางกิจกรรมการเรียนรู้',`<div class="scroll"><table class="properties"><thead><tr><th>คาบ</th><th>กิจกรรม</th><th>หลักฐาน</th></tr></thead><tbody><tr><td>1 • 50 นาที</td><td>ตั้งคำถามปัญหา 5 นาที • รู้จัก Designer 10 นาที • สร้างหน้าจอ 30 นาที • สรุป 5 นาที</td><td>หน้าจอ Designer</td></tr><tr><td>2 • 50 นาที</td><td>ทบทวน 5 นาที • เรียน Variables & Lists 10 นาที • ต่อ Blocks 1–3 จำนวน 30 นาที • ทดลอง 5 นาที</td><td>กดเพิ่มการบ้านได้</td></tr><tr><td>3 • 50 นาที</td><td>ทบทวน 5 นาที • เรียน TinyDB 10 นาที • ต่อ Blocks 4–6 จำนวน 30 นาที • ทดลอง 5 นาที</td><td>ปิด–เปิดและลบได้</td></tr><tr><td>4 • 50 นาที</td><td>แก้บั๊ก 15 นาที • ทดสอบ 15 นาที • นำเสนอ 15 นาที • สะท้อนผล 5 นาที</td><td>ทดสอบและส่งไฟล์</td></tr></tbody></table></div>`)+
 card('Pair Programming: ช่วยกันอย่างไร',`<ol><li>จับคู่ 2 คน: <b>Driver</b> ลาก Blocks และ <b>Navigator</b> อ่านขั้นตอน ตรวจชื่อและเงื่อนไข</li><li>สลับหน้าที่ทุก 10–15 นาที</li><li>เมื่อพบข้อผิดพลาด ให้อ่านชื่อบล็อก ตรวจการต่อ และทดสอบทีละชุด</li><li>เมื่อทำได้แล้วอธิบายขั้นตอนให้คู่ของตนฟัง</li></ol><div class="tip">งานส่งเป็นรายบุคคลหรือรายคู่ได้ตามที่ครูกำหนด แต่ทุกคนต้องอธิบายการทำงานของ Blocks ได้</div>`)+finish(3)}
@@ -163,7 +96,6 @@ const lessons=[lesson0,lesson1,lesson2,lesson3,lesson4,lesson5,lesson6];
 function render(i){current=Math.max(0,Math.min(6,i));$('moduleArea').innerHTML=lessons[current]();$('moduleSelect').value=String(current);$('prevBtn').disabled=current===0;$('nextBtn').disabled=current===6;$('stepLabel').textContent=`${current+1} / 7`;updateProgress();wireCurrent();window.scrollTo({top:0,behavior:'instant'});}
 function wireCurrent(){
  document.querySelectorAll('[data-finish]').forEach(btn=>btn.addEventListener('click',()=>{const i=+btn.dataset.finish;state.done[i]=!state.done[i];save();render(i)}));
- document.querySelectorAll('[data-copy-block]').forEach(btn=>btn.addEventListener('click',async()=>{const raw=BLOCKS[+btn.dataset.copyBlock].raw;try{await navigator.clipboard.writeText(raw);btn.textContent='✓ คัดลอกแล้ว'}catch(e){alert('ไม่สามารถคัดลอกโดยอัตโนมัติ กรุณาเลือกข้อความในกรอบ') }}));
  document.querySelectorAll('[data-check]').forEach(el=>el.addEventListener('change',()=>{state.checks[+el.dataset.check]=el.checked;save();refreshCheckCount()}));
  document.querySelectorAll('[data-answer]').forEach(el=>el.addEventListener('input',()=>{state.answers[+el.dataset.answer]=el.value;save()}));
  document.querySelectorAll('[data-reflection]').forEach(el=>el.addEventListener('input',()=>{state.reflection[+el.dataset.reflection]=el.value;save()}));
